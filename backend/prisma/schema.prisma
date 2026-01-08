@@ -20,6 +20,7 @@ model User{
   email String @unique
   passwordHash String
   phone String
+  address String
   role String 
   createdAt DateTime @default(now())
 
