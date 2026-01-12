@@ -1,20 +1,39 @@
-import express from "express";
-import cors from "cors";
-import { PrismaClient } from "@prisma/client";
-// import pkg from '@prisma/client';
-import router from "../api/user/route";
-// const { PrismaClient } = pkg;
+// import express from "express";
+// import cors from "cors";
+// import dotenv from "dotenv";
+// import authRoutes from "./modules/auth/route.js"
 
+// app.use("/api/auth", authRoutes);
+
+// dotenv.config();
+// const app = express();
+
+// app.use(cors());
+// app.use(express.json());
+
+// app.get("/", (req, res) => {
+//   res.send("LiveStockHub Backend Running...");
+// });
+
+// app.listen(8000, () => console.log("Server running on 8000"));
+
+
+import express from "express"
+import cors from "cors";
+import authRoutes from "./routes/auth.js";
 
 const app = express();
-const prisma = new PrismaClient();
-
-app.use("/api/user", router);
-app.use(cors());
+app.use(cors({
+  origin : "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("LiveStockHub API running 🚀");
+app.use("/auth", authRoutes);
+
+
+app.listen(8000, () => {
+  console.log("Server is running");
 });
 
-app.listen(5000, () => console.log("Server started on port 5000"));
+

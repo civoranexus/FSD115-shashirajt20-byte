@@ -5,78 +5,97 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
-  // output   = "../generated/prisma"
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  moduleFormat = "esm"
 }
 
 datasource db {
   provider = "mysql"
-  
 }
 
 
-model User{
-  id Int @id @default(autoincrement())
-  name String
-  email String @unique
-  passwordHash String
-  phone String
-  address String
-  role String 
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  location  String?
+  role      Role     @default(BUYER)
+  listings  Listing[]
+  bids      Bid[]
+  buys      Transaction[] @relation("BuyerTransactions")
+  sells     Transaction[] @relation("SellerTransactions")
   createdAt DateTime @default(now())
-
-  products Product[]
-
-  orders Order[]
 }
 
-model Product{
-  id Int @id @default(autoincrement())
-  title String
-  description String
-  price Float
-  category String
-  age Int
-  isAvailable Boolean @default(true)
-  stock_quantity Int
-  sellerId Int
-  seller User @relation(fields: [sellerId], references: [id])
+model Listing {
+  id          Int        @id @default(autoincrement())
+  seller      User       @relation(fields: [sellerId], references: [id])
+  sellerId    Int
+  title       String
+  breed       String?
+  age         Int?
+  weight      Float?
+  health      String?
+  price       Float
+  // images      String[]   // cloud URLs
+  status      ListingStatus @default(ACTIVE)
+  bids        Bid[]
+  transaction Transaction?
+  createdAt   DateTime  @default(now())
+
+  listingImages ListingImage[]
+}
+
+
+model ListingImage {
+  id        Int @id @default(autoincrement())
+  url       String
+  listingId Int
+  listing Listing @relation(fields: [listingId], references: [id])
+}
+
+model Bid {
+  id        Int      @id @default(autoincrement())
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  listingId Int
+  bidder    User     @relation(fields: [bidderId], references: [id])
+  bidderId  Int
+  amount    Float
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-
-  orderItems order_items[]
 }
 
-model Order{
-  id Int @id @default(autoincrement())
-  userId Int
-  user User @relation(fields: [userId], references: [id])
-  order_status String
-  totalAmount Float
-  createdAt DateTime @default(now())
-
-  orderItems order_items[]
-
-  payments payment[]
+model Transaction {
+  id          Int        @id @default(autoincrement())
+  listing     Listing    @relation(fields: [listingId], references: [id])
+  listingId   Int        @unique
+  buyer       User       @relation("BuyerTransactions", fields: [buyerId], references: [id])
+  buyerId     Int
+  seller      User       @relation("SellerTransactions", fields: [sellerId], references: [id])
+  sellerId    Int
+  amount      Float
+  paymentId   String?    // Razorpay
+  status      TxStatus   @default(PENDING)
+  createdAt   DateTime   @default(now())
 }
 
-model order_items{
-  id Int @id @default(autoincrement())
-  order_id Int
-  order Order @relation(fields: [order_id], references: [id])
-  productId Int
-  product Product @relation(fields: [productId], references: [id])
-  quantity Int
-  price Float
+enum Role {
+  SELLER
+  BUYER
+  ADMIN
 }
 
-model payment{
-  id Int @id @default(autoincrement())
-  orderId Int @unique
-  order Order @relation(fields: [orderId], references: [id])
-  amount Float
-  method String
-  status String
-  transactionId String?
-  createdAt DateTime @default(now())
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+}
+
+enum TxStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
 }
