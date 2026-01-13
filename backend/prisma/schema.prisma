@@ -5,80 +5,12 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
-  moduleFormat = "esm"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "mysql"
-}
-
-
-model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
-  phone     String?
-  location  String?
-  role      Role     @default(BUYER)
-  listings  Listing[]
-  bids      Bid[]
-  buys      Transaction[] @relation("BuyerTransactions")
-  sells     Transaction[] @relation("SellerTransactions")
-  createdAt DateTime @default(now())
-}
-
-model Listing {
-  id          Int        @id @default(autoincrement())
-  seller      User       @relation(fields: [sellerId], references: [id])
-  sellerId    Int
-  title       String
-  breed       String?
-  age         Int?
-  weight      Float?
-  health      String?
-  price       Float
-  // images      String[]   // cloud URLs
-  status      ListingStatus @default(ACTIVE)
-  bids        Bid[]
-  transaction Transaction?
-  createdAt   DateTime  @default(now())
-
-  listingImages ListingImage[]
-}
-
-
-model ListingImage {
-  id        Int @id @default(autoincrement())
-  url       String
-  listingId Int
-  listing Listing @relation(fields: [listingId], references: [id])
-}
-
-model Bid {
-  id        Int      @id @default(autoincrement())
-  listing   Listing  @relation(fields: [listingId], references: [id])
-  listingId Int
-  bidder    User     @relation(fields: [bidderId], references: [id])
-  bidderId  Int
-  amount    Float
-  createdAt DateTime @default(now())
-}
-
-model Transaction {
-  id          Int        @id @default(autoincrement())
-  listing     Listing    @relation(fields: [listingId], references: [id])
-  listingId   Int        @unique
-  buyer       User       @relation("BuyerTransactions", fields: [buyerId], references: [id])
-  buyerId     Int
-  seller      User       @relation("SellerTransactions", fields: [sellerId], references: [id])
-  sellerId    Int
-  amount      Float
-  paymentId   String?    // Razorpay
-  status      TxStatus   @default(PENDING)
-  createdAt   DateTime   @default(now())
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
@@ -99,3 +31,512 @@ enum TxStatus {
   FAILED
   REFUNDED
 }
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  phone_no Int    @unique
+  avatar   String
+  password String
+
+  userAddresses  UserAddress[]
+  orders         Order[]         @relation("UserOrders")
+  productItems   ProductItem[]   @relation("UserProductItems")
+  paymentMethods PaymentMethod[]
+  reviews        UserReview[]
+  cattle         Cattle[]
+  carts          Cart[]
+  orderProducts  OrderProduct[] // 🔥 added opposite
+}
+
+model UserAddress {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  addressId Int
+
+  user    User    @relation(fields: [userId], references: [id])
+  address Address @relation(fields: [addressId], references: [id])
+}
+
+model Address {
+  id            Int     @id @default(autoincrement())
+  unit_no       Int?
+  street_no     Int?
+  address_line1 String?
+  address_line2 String?
+  city          String
+  region        String
+  postal_code   Int
+  countryId     Int
+
+  country          Country       @relation(fields: [countryId], references: [id])
+  userAddress      UserAddress[]
+  ordersAsShipping Order[]       @relation("OrderShippingAddress")
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  country   String
+  addresses Address[]
+}
+
+model Product {
+  id              Int     @id @default(autoincrement())
+  categoryId      Int?
+  title           String
+  description     String
+  price           Float
+  image           String?
+  breedId         Int?
+  milk_capacityId Int?
+
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  breed        Breed?        @relation(fields: [breedId], references: [id])
+  milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+
+  productItems ProductItem[]
+  cattle       Cattle[]
+}
+
+model Milkcapacity {
+  id       Int       @id @default(autoincrement())
+  capacity Int
+  products Product[]
+  cattle   Cattle[]
+}
+
+model Category {
+  id            Int       @id @default(autoincrement())
+  category_name String
+  products      Product[]
+}
+
+model Breed {
+  id         Int       @id @default(autoincrement())
+  breed_name String
+  products   Product[]
+  cattle     Cattle[]
+}
+
+model ProductItem {
+  id               Int     @id @default(autoincrement())
+  productId        Int
+  userId           Int
+  quantity_instock Int
+  image            String?
+  price            Float
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation("UserProductItems", fields: [userId], references: [id])
+
+  cartItems     CartItem[]
+  orderProducts OrderProduct[]
+}
+
+model Cattle {
+  id              Int           @id @default(autoincrement())
+  productId       Int?
+  sellerId        Int?
+  tag_id          String?
+  title           String
+  description     String?
+  breedId         Int?
+  milk_capacityId Int?
+  age_months      Int?
+  weight_kg       Float?
+  gender          String?
+  health_status   String?
+  image           String
+  is_pregnant     Boolean       @default(false)
+  price           Float
+  status          ListingStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+
+  product      Product?      @relation(fields: [productId], references: [id])
+  seller       User?         @relation(fields: [sellerId], references: [id])
+  breed        Breed?        @relation(fields: [breedId], references: [id])
+  milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+}
+
+model Cart {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  user      User       @relation(fields: [userId], references: [id])
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id             Int @id @default(autoincrement())
+  cartId         Int
+  product_itemId Int
+  quantity       Int
+
+  cart        Cart        @relation(fields: [cartId], references: [id])
+  productItem ProductItem @relation(fields: [product_itemId], references: [id])
+}
+
+model Order {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  order_date         DateTime @default(now())
+  payment_methodId   Int?
+  shipping_addressId Int?
+  shipping_methodId  Int?
+  order_total        Int
+  order_statusId     Int?
+
+  user             User            @relation("UserOrders", fields: [userId], references: [id])
+  payment_method   PaymentMethod?  @relation("OrderPaymentMethod", fields: [payment_methodId], references: [id])
+  shipping_method  ShippingMethod? @relation(fields: [shipping_methodId], references: [id])
+  shipping_address Address?        @relation("OrderShippingAddress", fields: [shipping_addressId], references: [id])
+  order_status     OrderStatus?    @relation(fields: [order_statusId], references: [id])
+
+  orderProducts OrderProduct[]
+  payments      Payment[]
+}
+
+model OrderStatus {
+  id     Int     @id @default(autoincrement())
+  status String
+  orders Order[]
+}
+
+model OrderProduct {
+  id             Int   @id @default(autoincrement())
+  product_itemId Int
+  userId         Int
+  quantity       Int
+  price          Float
+  orderId        Int?
+
+  productItem ProductItem @relation(fields: [product_itemId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  order       Order?      @relation(fields: [orderId], references: [id])
+
+  reviews UserReview[] // 🔥 Added opposite
+}
+
+model ShippingMethod {
+  id     Int     @id @default(autoincrement())
+  name   String
+  price  Float
+  orders Order[]
+}
+
+model PaymentType {
+  id             Int             @id @default(autoincrement())
+  value          String
+  paymentMethods PaymentMethod[]
+}
+
+model PaymentMethod {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  payment_typeId Int
+  provider       String?
+  account_no     Int?
+  expiry_date    DateTime?
+
+  user        User        @relation(fields: [userId], references: [id])
+  paymentType PaymentType @relation(fields: [payment_typeId], references: [id])
+
+  orders   Order[]   @relation("OrderPaymentMethod") // 🔥 opposite added
+  payments Payment[]
+}
+
+model UserReview {
+  id              Int     @id @default(autoincrement())
+  userId          Int
+  order_productId Int
+  rating          Int
+  comment         String?
+
+  user         User         @relation(fields: [userId], references: [id])
+  orderProduct OrderProduct @relation(fields: [order_productId], references: [id])
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  amount          Float
+  status          TxStatus @default(PENDING)
+  paymentMethodId Int?
+
+  order         Order          @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+}
+
+// enum Role {
+//   SELLER
+//   BUYER
+//   ADMIN
+// }
+
+// enum ListingStatus {
+//   ACTIVE
+//   SOLD
+//   EXPIRED
+// }
+
+// enum TxStatus {
+//   PENDING
+//   PAID
+//   FAILED
+//   REFUNDED
+// }
+
+// /// Users & Addresses
+// model User {
+//   id            Int           @id @default(autoincrement())
+//   name          String
+//   email         String        @unique
+//   phone_no      Int           @unique
+//   avatar        String
+//   password      String
+
+//   userAddresses UserAddress[]
+//   orders        Order[]            @relation("UserOrders")
+//   productItems  ProductItem[]      @relation("UserProductItems")
+//   paymentMethods PaymentMethod[]
+//   reviews       UserReview[]
+//   cattle        Cattle[]           // listings sold by this user (seller)
+//   carts         Cart[]             // user's carts (if multiple)
+// }
+
+// /// join table: user <-> address (keeps your previous structure)
+// model UserAddress {
+//   id        Int     @id @default(autoincrement())
+//   userId    Int
+//   addressId Int
+
+//   user    User    @relation(fields: [userId], references: [id])
+//   address Address @relation(fields: [addressId], references: [id])
+// }
+
+// /// Address table (belongs to a country; referenced by UserAddress and Orders)
+// model Address {
+//   id            Int     @id @default(autoincrement())
+//   unit_no       Int?
+//   street_no     Int?
+//   address_line1 String?
+//   address_line2 String?
+//   city          String
+//   region        String
+//   postal_code   Int
+//   countryId     Int
+
+//   country      Country     @relation(fields: [countryId], references: [id])
+//   userAddress  UserAddress[]
+//   ordersAsShipping Order[]  @relation("OrderShippingAddress") // reverse relation for Orders using this address as shipping
+// }
+
+// /// Country
+// model Country {
+//   id        Int      @id @default(autoincrement())
+//   country   String
+
+//   addresses Address[]
+// }
+
+// /// Products & domain-specific tables
+// model Product {
+//   id               Int       @id @default(autoincrement())
+//   categoryId       Int?
+//   title            String
+//   description      String
+//   price            Float
+//   image            String?
+
+//   // FK fields for relations
+//   breedId          Int?      // added: was referenced but missing
+//   milk_capacityId  Int?      // added: was referenced but missing
+
+//   // Relations
+//   category     Category?     @relation(fields: [categoryId], references: [id])
+//   breed        Breed?        @relation(fields: [breedId], references: [id])
+//   milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+
+//   // children
+//   productItems ProductItem[]
+//   cattle       Cattle[]      // if a product is a parent to cattle records
+// }
+
+// model Milkcapacity {
+//   id       Int @id @default(autoincrement())
+//   capacity Int
+
+//   products Product[]
+//   cattle   Cattle[]
+// }
+
+// model Category {
+//   id            Int     @id @default(autoincrement())
+//   category_name String
+
+//   products Product[]
+// }
+
+// model Breed {
+//   id         Int     @id @default(autoincrement())
+//   breed_name String
+
+//   products Product[]
+//   cattle   Cattle[]
+// }
+
+// model ProductItem {
+//   id               Int     @id @default(autoincrement())
+//   productId        Int
+//   userId           Int
+//   quantity_instock Int
+//   image            String?
+//   price            Float
+
+//   product Product @relation(fields: [productId], references: [id])
+//   user            User @relation(fields: [userId], references: [id])
+//   // back-relations
+//   cartItems CartItem[]
+//   orderProducts OrderProduct[]
+// }
+
+// /// Cattle (animal-specific table)
+// model Cattle {
+//   id              Int      @id @default(autoincrement())
+//   productId       Int?     // optional: link to a parent product
+//   sellerId        Int?     // owner/seller user id
+//   tag_id          String?  // ear tag or unique identifier
+//   title           String
+//   description     String?
+//   breedId         Int?
+//   milk_capacityId Int?
+//   age_months      Int?
+//   weight_kg       Float?
+//   gender          String?
+//   health_status   String?
+//   image           String
+//   is_pregnant     Boolean  @default(false)
+//   price           Float
+//   status          ListingStatus @default(ACTIVE)
+//   createdAt       DateTime @default(now())
+
+//   // Relations
+//   product      Product?     @relation(fields: [productId], references: [id])
+//   seller       User?        @relation(fields: [sellerId], references: [id])
+//   breed        Breed?       @relation(fields: [breedId], references: [id])
+//   milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+// }
+
+// /// Cart and CartItem
+// model Cart {
+//   id      Int    @id @default(autoincrement())
+//   userId  Int
+//   user    User   @relation(fields: [userId], references: [id])
+
+//   cartItems CartItem[]
+// }
+
+// model CartItem {
+//   id             Int @id @default(autoincrement())
+//   cartId         Int
+//   product_itemId Int
+//   quantity       Int
+
+//   cart        Cart        @relation(fields: [cartId], references: [id])
+//   productItem ProductItem @relation(fields: [product_itemId], references: [id])
+// }
+
+// /// Orders & Order related
+// model Order {
+//   id                 Int       @id @default(autoincrement())
+//   userId             Int
+//   order_date         DateTime  @default(now())
+//   payment_methodId   Int?
+//   shipping_addressId Int?
+//   shipping_methodId  Int?
+//   order_total        Int
+//   order_statusId     Int?
+
+//   user             User           @relation("UserOrders", fields: [userId], references: [id])
+//   payment_method   PaymentMethod? @relation(fields: [payment_methodId], references: [id])
+//   shipping_method  ShippingMethod? @relation(fields: [shipping_methodId], references: [id])
+//   shipping_address Address?        @relation("OrderShippingAddress", fields: [shipping_addressId], references: [id])
+//   order_status     OrderStatus?   @relation(fields: [order_statusId], references: [id])
+
+//   orderProducts    OrderProduct[]
+//   payments         Payment[]
+// }
+
+// model OrderStatus {
+//   id     Int    @id @default(autoincrement())
+//   status String
+
+//   orders Order[]
+// }
+
+// model OrderProduct {
+//   id             Int     @id @default(autoincrement())
+//   product_itemId Int
+//   userId         Int
+//   quantity       Int
+//   price          Float
+//   orderId        Int?
+
+//   productItem ProductItem @relation(fields: [product_itemId], references: [id])
+//   user        User        @relation(fields: [userId], references: [id])
+//   order       Order?      @relation(fields: [orderId], references: [id])
+// }
+
+// /// Shipping and Payments
+// model ShippingMethod {
+//   id    Int    @id @default(autoincrement())
+//   name  String
+//   price Float
+
+//   orders Order[]
+// }
+
+// model PaymentType {
+//   id    Int    @id @default(autoincrement())
+//   value String
+
+//   paymentMethods PaymentMethod[]
+// }
+
+// model PaymentMethod {
+//   id             Int      @id @default(autoincrement())
+//   userId         Int
+//   payment_typeId Int
+//   provider       String?
+//   account_no     Int?
+//   expiry_date    DateTime?
+
+//   user        User        @relation(fields: [userId], references: [id])
+//   paymentType PaymentType @relation(fields: [payment_typeId], references: [id])
+//   payments    Payment[]
+// }
+
+// /// Reviews
+// model UserReview {
+//   id              Int    @id @default(autoincrement())
+//   userId          Int
+//   order_productId Int
+//   rating          Int
+//   comment         String?
+
+//   user         User         @relation(fields: [userId], references: [id])
+//   orderProduct OrderProduct @relation(fields: [order_productId], references: [id])
+// }
+
+// /// Optional Payments table (if you plan to track each payment)
+// model Payment {
+//   id               Int      @id @default(autoincrement())
+//   orderId          Int
+//   amount           Float
+//   status           TxStatus @default(PENDING)
+//   paymentMethodId  Int?
+
+//   order         Order         @relation(fields: [orderId], references: [id])
+//   paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+// }
