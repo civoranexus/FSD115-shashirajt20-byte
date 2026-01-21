@@ -39,6 +39,7 @@ model User {
   phone_no Int    @unique
   avatar   String
   password String
+  role     Role   @default(BUYER)
 
   userAddresses  UserAddress[]
   orders         Order[]         @relation("UserOrders")
