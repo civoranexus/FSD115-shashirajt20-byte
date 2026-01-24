@@ -36,7 +36,7 @@ model User {
   id       Int    @id @default(autoincrement())
   name     String
   email    String @unique
-  phone_no Int    @unique
+  phone_no String @unique
   avatar   String
   password String
   role     Role   @default(BUYER)
@@ -83,11 +83,11 @@ model Country {
 }
 
 model Product {
-  id              Int     @id @default(autoincrement())
+  id              Int      @id @default(autoincrement())
   categoryId      Int?
   title           String
   description     String
-  price           Float
+  price           Decimal? @db.Decimal(10, 2)
   image           String?
   breedId         Int?
   milk_capacityId Int?
@@ -126,20 +126,24 @@ model ProductItem {
   userId           Int
   quantity_instock Int
   image            String?
-  price            Float
+  price            Decimal @db.Decimal(10, 2)
 
   product Product @relation(fields: [productId], references: [id])
   user    User    @relation("UserProductItems", fields: [userId], references: [id])
 
   cartItems     CartItem[]
   orderProducts OrderProduct[]
+
+  @@unique([productId, userId])
+  @@index([userId])
+  @@index([productId])
 }
 
 model Cattle {
   id              Int           @id @default(autoincrement())
   productId       Int?
   sellerId        Int?
-  tag_id          String?
+  tag_id          String?       @unique
   title           String
   description     String?
   breedId         Int?
@@ -150,7 +154,7 @@ model Cattle {
   health_status   String?
   image           String
   is_pregnant     Boolean       @default(false)
-  price           Float
+  price           Decimal       @db.Decimal(10, 2)
   status          ListingStatus @default(ACTIVE)
   createdAt       DateTime      @default(now())
 

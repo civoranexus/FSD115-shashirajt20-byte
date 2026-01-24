@@ -46,6 +46,13 @@ export async function signUp(req, res) {
     try {
         const { name, email, phone_no, avatar, password } = req.body;
 
+        if (!/^\d{10}$/.test(phone_no)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid phone number (must be 10 digits)"
+            });
+        }
+
         // check if already exists
         const exist = await prisma.user.findUnique({ where: { email } });
         if (exist) {
@@ -65,7 +72,7 @@ export async function signUp(req, res) {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await prisma.user.create({
-            data: { name, email, phone_no, avatar, password:hashedPassword }
+            data: { name, email, phone_no, avatar, password: hashedPassword }
         });
 
         const token = generateToken({ id: user.id });
@@ -89,22 +96,21 @@ export async function signUp(req, res) {
 
 export async function logout(req, res) {
     try {
-      res.clearCookie("token", {
-        httpOnly: true,
-        secure: true, // prod me true
-        sameSite: "none"
-      });
-  
-      return res.json({
-        success: true,
-        message: "Logout successful"
-      });
-  
+        res.clearCookie("token", {
+            httpOnly: true,
+            secure: true, // prod me true
+            sameSite: "none"
+        });
+
+        return res.json({
+            success: true,
+            message: "Logout successful"
+        });
+
     } catch (error) {
-      return res.json({
-        success: false,
-        message: "Something went wrong"
-      });
+        return res.json({
+            success: false,
+            message: "Something went wrong"
+        });
     }
-  }
-  
+}

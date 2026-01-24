@@ -77,7 +77,7 @@ export default function SignupForm() {
     setLoading(false);
 
     if (data.success) {
-      router.push("/login");
+      router.push("/signin");
     } else {
       setError(data.message || "Something went wrong");
     }
@@ -104,7 +104,7 @@ export default function SignupForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
 
           <input
@@ -113,7 +113,7 @@ export default function SignupForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
 
           <input
@@ -122,7 +122,7 @@ export default function SignupForm() {
             value={phone_no}
             onChange={(e) => setPhone_no(e.target.value)}
             required
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
 
           <input
@@ -131,7 +131,7 @@ export default function SignupForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
 
           <input
@@ -139,7 +139,7 @@ export default function SignupForm() {
             placeholder="Profile Image URL (optional)"
             value={avatar}
             onChange={(e) => setAvatar(e.target.value)}
-            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-black"
           />
 
           {/* Error Message */}
@@ -163,7 +163,7 @@ export default function SignupForm() {
         <p className="text-center text-sm text-gray-500 mt-6">
           Already have an account?{" "}
           <span
-            onClick={() => router.push("/login")}
+            onClick={() => router.push("/signin")}
             className="text-indigo-600 cursor-pointer font-semibold hover:underline"
           >
             Login
