@@ -82,6 +82,8 @@ model Country {
   addresses Address[]
 }
 
+
+// It is a frame of product created by the admin only
 model Product {
   id              Int      @id @default(autoincrement())
   categoryId      Int?
@@ -120,6 +122,8 @@ model Breed {
   cattle     Cattle[]
 }
 
+
+// This is the product created by the seller on the frame created byt the admin
 model ProductItem {
   id               Int     @id @default(autoincrement())
   productId        Int
@@ -139,6 +143,8 @@ model ProductItem {
   @@index([productId])
 }
 
+
+// This is actual product created by the seller on the frame created by the admin
 model Cattle {
   id              Int           @id @default(autoincrement())
   productId       Int?

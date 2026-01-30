@@ -115,142 +115,235 @@ export async function logout(req, res) {
     }
 }
 
-// 1) createCatalogProduct (admin-only)
-async function createCatalogProduct(req, res) {
-  const { title, description, price, categoryId, breedId, milk_capacityId, image } = req.body;
-
-  // simple admin check
-  if (!req.user || req.user.role !== 'ADMIN') {
-    return res.status(403).json({ success: false, message: 'Admin access required' });
-  }
-
-  if (!title || !description) {
-    return res.status(400).json({ success: false, message: 'title and description required' });
-  }
-
-  try {
-    const product = await prisma.product.create({
-      data: {
-        title,
-        description,
-        // pass Decimal as string if provided
-        price: price != null ? price.toString() : null,
-        categoryId: categoryId ? Number(categoryId) : null,
-        breedId: breedId ? Number(breedId) : null,
-        milk_capacityId: milk_capacityId ? Number(milk_capacityId) : null,
-        image: image ?? null
-      }
-    });
-
-    return res.json({ success: true, product });
-  } catch (err) {
-    console.error('createCatalogProduct error', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-}
-
-
-// 2) createOrUpdateProductItemHandler (seller-only) — avoids duplicate seller listings
-async function createOrUpdateProductItemHandler(req, res) {
-  const sellerId = req.user?.id;
-  const { productId, price, quantity_instock, image } = req.body;
-
-  if (!sellerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  if (req.user.role !== 'SELLER') return res.status(403).json({ success: false, message: 'Seller role required' });
-
-  if (!productId) return res.status(400).json({ success: false, message: 'productId required' });
-  if (price == null && quantity_instock == null && image == null) {
-    return res.status(400).json({ success: false, message: 'At least one of price, quantity_instock or image is required' });
-  }
-
-  try {
-    // ensure referenced Product exists
-    const product = await prisma.product.findUnique({ where: { id: Number(productId) } });
-    if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-
-    // find existing listing by this seller for this product
-    const existing = await prisma.productItem.findFirst({
-      where: { productId: Number(productId), userId: sellerId }
-    });
-
-    if (existing) {
-      // update existing listing
-      const updated = await prisma.productItem.update({
-        where: { id: existing.id },
-        data: {
-          price: price != null ? price.toString() : undefined,
-          quantity_instock: quantity_instock != null ? Number(quantity_instock) : undefined,
-          image: image ?? undefined,
-          isActive: true // reactivate if needed
-        },
-        include: { product: true, user: true }
-      });
-      return res.json({ success: true, action: 'updated', productItem: updated });
-    } else {
-      // create new listing
-      const created = await prisma.productItem.create({
-        data: {
-          product: { connect: { id: Number(productId) } },
-          user: { connect: { id: sellerId } },
-          price: price != null ? price.toString() : '0.00',
-          quantity_instock: quantity_instock != null ? Number(quantity_instock) : 0,
-          image: image ?? null,
-          isActive: true
-        },
-        include: { product: true, user: true }
-      });
-      return res.json({ success: true, action: 'created', productItem: created });
+export async function createCatalogProduct(req, res){
+    const {title, description, price, categoryId, breedId, milk_capacityId, image} = req.body;
+    if(!req.user || req.user.role !== 'ADMIN'){
+        return res.status(403).json({
+            success : false,
+            message : "Admin access required"
+        });
     }
-  } catch (err) {
-    console.error('createOrUpdateProductItemHandler error', err);
-    // If you added @@unique([productId, userId]) and a race condition happens,
-    // Prisma may throw a unique constraint error — handle that carefully in production.
-    return res.status(500).json({ success: false, message: err.message });
-  }
-}
-
-// 3) createCattleHandler (seller-only, check unique tag)
-async function createCattleHandler(req, res) {
-  const sellerId = req.user?.id;
-  const {
-    tag_id, title, description, breedId, milk_capacityId,
-    age_months, weight_kg, gender, health_status, image, price
-  } = req.body;
-
-  if (!sellerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
-  if (req.user.role !== 'SELLER') return res.status(403).json({ success: false, message: 'Seller role required' });
-
-  if (!title || !price) return res.status(400).json({ success: false, message: 'title and price are required' });
-
-  try {
-    // if tag_id provided, ensure uniqueness
-    if (tag_id) {
-      const byTag = await prisma.cattle.findUnique({ where: { tag_id } }); // requires tag_id @unique in schema
-      if (byTag) return res.status(409).json({ success: false, message: 'tag_id already exists' });
+    if(!title || !description || !price || !image){
+        return res.josn(400).json({
+            success : false,
+            message : "All fields are required"
+        });
     }
-
-    const cattle = await prisma.cattle.create({
-      data: {
-        seller: { connect: { id: sellerId } },
-        tag_id: tag_id ?? null,
-        title,
-        description: description ?? null,
-        breedId: breedId ? Number(breedId) : null,
-        milk_capacityId: milk_capacityId ? Number(milk_capacityId) : null,
-        age_months: age_months ? Number(age_months) : null,
-        weight_kg: weight_kg ? Number(weight_kg) : null,
-        gender: gender ?? null,
-        health_status: health_status ?? null,
-        image: image ?? '',
-        price: price.toString(), // Decimal as string
-        status: 'ACTIVE'
-      }
-    });
-
-    return res.json({ success: true, cattle });
-  } catch (err) {
-    console.error('createCattleHandler error', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
+    try {
+        const product = await prisma.product.create({
+            data : {
+                title,
+                description,
+                price : price != null ? price.toString() : null,
+                categoryId : categoryId ? Number(categoryId) : null,
+                breedId : breedId ? Number(breedId) : null,
+                milk_capacityId : milk_capacityId ? Number(milk_capacityId) : null,
+                image : image ?? null
+            }
+        });
+        return res.josn({
+            success : true,
+            product
+        });
+    } catch (error) {
+        console.error("createCatalogProduct error", err);
+        return res.status(500).josn({
+            success : false,
+            message : err.message
+        });
+    }
 }
+
+export async function createUpdateProductItemHandler(req, res){
+    const sellerId = req.user?.id;
+    const {productId, price, userId, quantity_instock, image} = req.body;
+
+    if(!sellerId){
+        return res.status(401).json({
+            success : false, 
+            message : 'Unauthorized'
+        });
+    }
+    if(req.user.role !== 'SELLER'){
+        return res.status(403).json({
+            sucess : false,
+            message : 'Seller role required'
+        });
+    }
+    if(!productId){
+        return res.status(400).json({
+            success : false,
+            message : "productId required"
+        });
+    }
+    if(!userId){
+        return res.status(400).json({
+            success : false,
+            message : "userId required"
+        });
+    }
+    if(price == null && quantity_instock == null && image == null){
+        return res.status(400).json({
+            success : false,
+            message : "At least one of price, quantity_instock or image is required"
+        })
+    }
+    try {
+        const product = await prisma.product.findUnique({
+            where : {
+                id : Number(productId)
+            }
+        });
+        if(!product){
+            return res.status(404).json({
+                success : false,
+                message : "Product not found"
+            });
+        }
+        const existing = await prisma.productItem.findFirst
+    } catch (error) {
+        
+    }
+}
+
+
+
+// // 1) createCatalogProduct (admin-only)
+// async function createCatalogProduct(req, res) {
+//   const { title, description, price, categoryId, breedId, milk_capacityId, image } = req.body;
+
+//   // simple admin check
+//   if (!req.user || req.user.role !== 'ADMIN') {
+//     return res.status(403).json({ success: false, message: 'Admin access required' });
+//   }
+
+//   if (!title || !description) {
+//     return res.status(400).json({ success: false, message: 'title and description required' });
+//   }
+
+//   try {
+//     const product = await prisma.product.create({
+//       data: {
+//         title,
+//         description,
+//         // pass Decimal as string if provided
+//         price: price != null ? price.toString() : null,
+//         categoryId: categoryId ? Number(categoryId) : null,
+//         breedId: breedId ? Number(breedId) : null,
+//         milk_capacityId: milk_capacityId ? Number(milk_capacityId) : null,
+//         image: image ?? null
+//       }
+//     });
+
+//     return res.json({ success: true, product });
+//   } catch (err) {
+//     console.error('createCatalogProduct error', err);
+//     return res.status(500).json({ success: false, message: err.message });
+//   }
+// }
+
+
+// // 2) createOrUpdateProductItemHandler (seller-only) — avoids duplicate seller listings
+// async function createOrUpdateProductItemHandler(req, res) {
+//   const sellerId = req.user?.id;
+//   const { productId, price, quantity_instock, image } = req.body;
+
+//   if (!sellerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+//   if (req.user.role !== 'SELLER') return res.status(403).json({ success: false, message: 'Seller role required' });
+
+//   if (!productId) return res.status(400).json({ success: false, message: 'productId required' });
+//   if (price == null && quantity_instock == null && image == null) {
+//     return res.status(400).json({ success: false, message: 'At least one of price, quantity_instock or image is required' });
+//   }
+
+//   try {
+//     // ensure referenced Product exists
+//     const product = await prisma.product.findUnique({ where: { id: Number(productId) } });
+//     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
+
+//     // find existing listing by this seller for this product
+//     const existing = await prisma.productItem.findFirst({
+//       where: { productId: Number(productId), userId: sellerId }
+//     });
+
+//     if (existing) {
+//       // update existing listing
+//       const updated = await prisma.productItem.update({
+//         where: { id: existing.id },
+//         data: {
+//           price: price != null ? price.toString() : undefined,
+//           quantity_instock: quantity_instock != null ? Number(quantity_instock) : undefined,
+//           image: image ?? undefined,
+//           isActive: true // reactivate if needed
+//         },
+//         include: { product: true, user: true }
+//       });
+//       return res.json({ success: true, action: 'updated', productItem: updated });
+//     } else {
+//       // create new listing
+//       const created = await prisma.productItem.create({
+//         data: {
+//           product: { connect: { id: Number(productId) } },
+//           user: { connect: { id: sellerId } },
+//           price: price != null ? price.toString() : '0.00',
+//           quantity_instock: quantity_instock != null ? Number(quantity_instock) : 0,
+//           image: image ?? null,
+//           isActive: true
+//         },
+//         include: { product: true, user: true }
+//       });
+//       return res.json({ success: true, action: 'created', productItem: created });
+//     }
+//   } catch (err) {
+//     console.error('createOrUpdateProductItemHandler error', err);
+//     // If you added @@unique([productId, userId]) and a race condition happens,
+//     // Prisma may throw a unique constraint error — handle that carefully in production.
+//     return res.status(500).json({ success: false, message: err.message });
+//   }
+// }
+
+// // 3) createCattleHandler (seller-only, check unique tag)
+// async function createCattleHandler(req, res) {
+//   const sellerId = req.user?.id;
+//   const {
+//     tag_id, title, description, breedId, milk_capacityId,
+//     age_months, weight_kg, gender, health_status, image, price
+//   } = req.body;
+
+//   if (!sellerId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+//   if (req.user.role !== 'SELLER') return res.status(403).json({ success: false, message: 'Seller role required' });
+
+//   if (!title || !price) return res.status(400).json({ success: false, message: 'title and price are required' });
+
+//   try {
+//     // if tag_id provided, ensure uniqueness
+//     if (tag_id) {
+//       const byTag = await prisma.cattle.findUnique({ where: { tag_id } }); // requires tag_id @unique in schema
+//       if (byTag) return res.status(409).json({ success: false, message: 'tag_id already exists' });
+//     }
+
+//     const cattle = await prisma.cattle.create({
+//       data: {
+//         seller: { connect: { id: sellerId } },
+//         tag_id: tag_id ?? null,
+//         title,
+//         description: description ?? null,
+//         breedId: breedId ? Number(breedId) : null,
+//         milk_capacityId: milk_capacityId ? Number(milk_capacityId) : null,
+//         age_months: age_months ? Number(age_months) : null,
+//         weight_kg: weight_kg ? Number(weight_kg) : null,
+//         gender: gender ?? null,
+//         health_status: health_status ?? null,
+//         image: image ?? '',
+//         price: price.toString(), // Decimal as string
+//         status: 'ACTIVE'
+//       }
+//     });
+
+//     return res.json({ success: true, cattle });
+//   } catch (err) {
+//     console.error('createCattleHandler error', err);
+//     return res.status(500).json({ success: false, message: err.message });
+//   }
+// }
 
