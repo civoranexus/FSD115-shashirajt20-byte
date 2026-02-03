@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import router from "./route/auth.js";
 import Router from "./route/product.js";
+// import uploadRouter from "./route/upload.js";
 
 dotenv.config();
 
@@ -15,9 +16,13 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(cookieParser());
+// app.use("/uploads", express.static("uploads"));
+
 
 app.use("/auth", router);
-app.use("/api", Router);
+app.use("/apis", Router);
+
+// app.use("/imageapi", uploadRouter);
 
 app.listen(process.env.PORT, ()=>{
     console.log(`Server is running on ${process.env.PORT}`)

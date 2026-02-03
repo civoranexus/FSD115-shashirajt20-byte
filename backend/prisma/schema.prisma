@@ -41,14 +41,15 @@ model User {
   password String
   role     Role   @default(BUYER)
 
-  userAddresses  UserAddress[]
-  orders         Order[]         @relation("UserOrders")
-  productItems   ProductItem[]   @relation("UserProductItems")
-  paymentMethods PaymentMethod[]
-  reviews        UserReview[]
-  cattle         Cattle[]
-  carts          Cart[]
-  orderProducts  OrderProduct[] // 🔥 added opposite
+  userAddresses      UserAddress[]
+  orders             Order[]         @relation("UserOrders")
+  productItems       ProductItem[]   @relation("UserProductItems")
+  paymentMethods     PaymentMethod[]
+  reviews            UserReview[]
+  cattle             Cattle[]
+  carts              Cart[]
+  orderProducts      OrderProduct[]
+  is_seller_verified Boolean         @default(false)
 }
 
 model UserAddress {
@@ -82,7 +83,6 @@ model Country {
   addresses Address[]
 }
 
-
 // It is a frame of product created by the admin only
 model Product {
   id              Int      @id @default(autoincrement())
@@ -90,7 +90,7 @@ model Product {
   title           String
   description     String
   price           Decimal? @db.Decimal(10, 2)
-  image           String?
+  image           String?  @db.Text
   breedId         Int?
   milk_capacityId Int?
 
@@ -122,6 +122,12 @@ model Breed {
   cattle     Cattle[]
 }
 
+enum ListingApprovalStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
 
 // This is the product created by the seller on the frame created byt the admin
 model ProductItem {
@@ -129,11 +135,15 @@ model ProductItem {
   productId        Int
   userId           Int
   quantity_instock Int
-  image            String?
+  image            String? @db.Text
   price            Decimal @db.Decimal(10, 2)
+  isActive         Boolean @default(true)
+  status           ListingApprovalStatus @default(PENDING)
+  reject_reason    String?
 
   product Product @relation(fields: [productId], references: [id])
   user    User    @relation("UserProductItems", fields: [userId], references: [id])
+  
 
   cartItems     CartItem[]
   orderProducts OrderProduct[]
@@ -141,8 +151,8 @@ model ProductItem {
   @@unique([productId, userId])
   @@index([userId])
   @@index([productId])
+  @@index([status])
 }
-
 
 // This is actual product created by the seller on the frame created by the admin
 model Cattle {
@@ -158,7 +168,7 @@ model Cattle {
   weight_kg       Float?
   gender          String?
   health_status   String?
-  image           String
+  image           String        @db.Text
   is_pregnant     Boolean       @default(false)
   price           Decimal       @db.Decimal(10, 2)
   status          ListingStatus @default(ACTIVE)
