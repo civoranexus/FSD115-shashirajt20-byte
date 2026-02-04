@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import router from "./route/auth.js";
 import Router from "./route/product.js";
+// import Routers from "./route/cart.js";
 // import uploadRouter from "./route/upload.js";
 
 dotenv.config();
@@ -21,6 +22,7 @@ app.use(cookieParser());
 
 app.use("/auth", router);
 app.use("/apis", Router);
+// app.use("/cartapi", Routers)
 
 // app.use("/imageapi", uploadRouter);
 

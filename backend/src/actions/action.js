@@ -655,3 +655,51 @@ export async function getActiveProductItems(req, res) {
         return res.status(500).json({ success: false, message: err.message || "Server error" });
     }
 }
+
+// get single product (frame) by id
+export async function getProductById(req, res) {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: "id required" });
+
+    try {
+        const product = await prisma.product.findUnique({
+            where: { id },
+            include: {
+                category: true,
+                breed: true,
+                milkcapacity: true
+            }
+        });
+
+        if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+        return res.json({ success: true, product });
+    } catch (err) {
+        console.error("getProductById error", err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+}
+
+// get active productItems (listings) for a given product id
+export async function getActiveProductItemsByProductId(req, res) {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ success: false, message: "product id required" });
+
+    try {
+        const items = await prisma.productItem.findMany({
+            where: {
+                productId: id,
+                status: "ACTIVE"
+            },
+            orderBy: { id: "desc" },
+            include: {
+                user: { select: { id: true, name: true, avatar: true } },
+                product: true
+            }
+        });
+
+        return res.json({ success: true, items });
+    } catch (err) {
+        console.error("getActiveProductItemsByProductId error", err);
+        return res.status(500).json({ success: false, message: err.message });
+    }
+}
