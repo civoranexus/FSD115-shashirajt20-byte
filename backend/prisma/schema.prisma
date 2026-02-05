@@ -128,22 +128,20 @@ enum ListingApprovalStatus {
   REJECTED
 }
 
-
 // This is the product created by the seller on the frame created byt the admin
 model ProductItem {
-  id               Int     @id @default(autoincrement())
+  id               Int                   @id @default(autoincrement())
   productId        Int
   userId           Int
   quantity_instock Int
-  image            String? @db.Text
-  price            Decimal @db.Decimal(10, 2)
-  isActive         Boolean @default(true)
+  image            String?               @db.Text
+  price            Decimal               @db.Decimal(10, 2)
+  isActive         Boolean               @default(true)
   status           ListingApprovalStatus @default(PENDING)
   reject_reason    String?
 
   product Product @relation(fields: [productId], references: [id])
   user    User    @relation("UserProductItems", fields: [userId], references: [id])
-  
 
   cartItems     CartItem[]
   orderProducts OrderProduct[]
@@ -207,6 +205,9 @@ model Order {
   shipping_methodId  Int?
   order_total        Int
   order_statusId     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
 
   user             User            @relation("UserOrders", fields: [userId], references: [id])
   payment_method   PaymentMethod?  @relation("OrderPaymentMethod", fields: [payment_methodId], references: [id])
