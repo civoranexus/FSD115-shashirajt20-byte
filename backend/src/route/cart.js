@@ -7,15 +7,16 @@ import {
     removeCartItemHandler,
     clearCartHandler
 } from "../actions/action.js";
+import { allowRoles } from "../utils/role.js";
 
 const Routers = express.Router();
 
-Routers.get("/cart", verifyToken, getCartHandler);
-Routers.post("/cart/add", verifyToken, addToCartHandler);
+Routers.get("/cart", verifyToken, allowRoles("BUYER"), getCartHandler);
+Routers.post("/cart/add", verifyToken, allowRoles("BUYER"), addToCartHandler);
 
-Routers.post("/cart/item/:id", verifyToken, updateCartItemHandler);
-Routers.delete("/cart/item/:id", verifyToken, removeCartItemHandler);
+Routers.post("/cart/item/:id", verifyToken, allowRoles("BUYER"), updateCartItemHandler);
+Routers.delete("/cart/item/:id", verifyToken, allowRoles("BUYER"), removeCartItemHandler);
 
-Routers.delete("/cart/clear", verifyToken, clearCartHandler);
+Routers.delete("/cart/clear", verifyToken, allowRoles("BUYER"), clearCartHandler);
 
 export default Routers;

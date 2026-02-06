@@ -5,6 +5,8 @@ import cookieParser from "cookie-parser";
 import router from "./route/auth.js";
 import Router from "./route/product.js";
 import CartRouter from "./route/cart.js"
+import OrderRouter from "./route/order.js";
+import PaymentRouter from "./route/payment.js"
 
 dotenv.config();
 
@@ -22,7 +24,9 @@ app.use(cookieParser());
 app.use("/auth", router);
 app.use("/apis", Router);
 app.use("/cartapi", CartRouter);
-app.use("/orderapi", CartRouter);
+app.use("/orderapi", OrderRouter);
+
+app.use("/paymentapi", PaymentRouter);
 
 // app.use("/imageapi", uploadRouter);
 

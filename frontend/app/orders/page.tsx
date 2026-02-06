@@ -68,13 +68,35 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  async function checkRole() {
+    const res = await fetch("/api/auth/me", { credentials: "include" });
+
+    if (res.status === 401) {
+      router.replace("/signin");
+      return false;
+    }
+
+    const data = await res.json();
+
+    if (data?.user?.role !== "BUYER") {
+      router.replace("/");
+      return false;
+    }
+
+    return true;
+  }
+
   async function load() {
     try {
       setLoading(true);
       const res = await fetch("/api/orderapi/my", { credentials: "include" });
       const text = await res.text();
       let data = null;
-      try { data = JSON.parse(text); } catch { data = null; }
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = null;
+      }
 
       if (!res.ok) {
         setErr(data?.message || "Failed to load orders");
@@ -90,7 +112,10 @@ export default function OrdersPage() {
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    checkRole();
+    load();
+  }, []);
 
   if (loading) return <div className="p-4">Loading orders…</div>;
   if (err) return <div className="p-4 text-red-600">{err}</div>;
@@ -99,18 +124,32 @@ export default function OrdersPage() {
   return (
     <main className="min-h-screen p-4 bg-slate-50">
       <div className="max-w-4xl mx-auto space-y-4">
-        <h1 className="text-2xl font-bold">My Orders</h1>
+        <h1 className="text-2xl text-gray-500 font-bold">My Orders</h1>
         {orders.map((o) => (
-          <div key={o.id} className="bg-white p-4 rounded-lg border flex justify-between items-center">
+          <div
+            key={o.id}
+            className="bg-white p-4 rounded-lg border flex justify-between items-center"
+          >
             <div>
-              <div className="font-semibold">Order #{o.id}</div>
-              <div className="text-sm text-gray-500">Total: ₹{o.order_total}</div>
-              <div className="text-sm text-gray-500">Status: {o.order_status?.status || "—"}</div>
-              <div className="text-xs text-gray-400">{new Date(o.order_date).toLocaleString()}</div>
+              <div className="font-semibold text-gray-700">Order #{o.id}</div>
+              <div className="text-sm text-gray-500">
+                Total: ₹{o.order_total}
+              </div>
+              <div className="text-sm text-gray-500">
+                Status: {o.order_status?.status || "—"}
+              </div>
+              <div className="text-xs text-gray-400">
+                {new Date(o.order_date).toLocaleString()}
+              </div>
             </div>
 
             <div>
-              <button onClick={() => router.push(`/orders/${o.id}`)} className="px-3 py-2 bg-indigo-600 text-white rounded">View</button>
+              <button
+                onClick={() => router.push(`/orders/${o.id}`)}
+                className="px-3 py-2 bg-indigo-600 text-white rounded"
+              >
+                View
+              </button>
             </div>
           </div>
         ))}
