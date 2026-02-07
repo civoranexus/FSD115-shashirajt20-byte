@@ -41,56 +41,128 @@ export async function signIn(req, res) {
     }
 }
 
+// export async function signUp(req, res) {
+//     try {
+//         const { name, email, phone_no, avatar, password } = req.body;
+
+//         if (!/^\d{10}$/.test(phone_no)) {
+//             return res.status(400).json({
+//                 success: false,
+//                 message: "Invalid phone number (must be 10 digits)"
+//             });
+//         }
+
+//         // check if already exists
+//         const exist = await prisma.user.findUnique({ where: { email } });
+//         if (exist) {
+//             return res.json({
+//                 success: false,
+//                 message: "Email already registered"
+//             });
+//         }
+
+//         const existPhoneNo = await prisma.user.findUnique({ where: { phone_no } });
+//         if (existPhoneNo) {
+//             return res.json({
+//                 success: false,
+//                 message: "Phone no. is already registered"
+//             });
+//         }
+
+//         const hashedPassword = await bcrypt.hash(password, 10);
+//         const user = await prisma.user.create({
+//             data: { name, email, phone_no, avatar, password: hashedPassword }
+//         });
+
+//         const token = generateToken({ id: user.id });
+//         res.cookie("token", token, {
+//             httpOnly: true,
+//             secure: true, // prod me true
+//             sameSite: "none"
+//         });
+//         return res.json({
+//             success: true,
+//             message: "Signup successful"
+//         });
+//     } catch (error) {
+//         return res.json({
+//             success: false,
+//             message: error.message ?? "Server error"
+//         })
+//     }
+// }
+
+
 export async function signUp(req, res) {
-    try {
-        const { name, email, phone_no, avatar, password } = req.body;
+  try {
+    const { name, email, phone_no, avatar, password, address, applySeller, seller_bio } = req.body;
 
-        if (!/^\d{10}$/.test(phone_no)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid phone number (must be 10 digits)"
-            });
-        }
-
-        // check if already exists
-        const exist = await prisma.user.findUnique({ where: { email } });
-        if (exist) {
-            return res.json({
-                success: false,
-                message: "Email already registered"
-            });
-        }
-
-        const existPhoneNo = await prisma.user.findUnique({ where: { phone_no } });
-        if (existPhoneNo) {
-            return res.json({
-                success: false,
-                message: "Phone no. is already registered"
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await prisma.user.create({
-            data: { name, email, phone_no, avatar, password: hashedPassword }
-        });
-
-        const token = generateToken({ id: user.id });
-        res.cookie("token", token, {
-            httpOnly: true,
-            secure: true, // prod me true
-            sameSite: "none"
-        });
-        return res.json({
-            success: true,
-            message: "Signup successful"
-        });
-    } catch (error) {
-        return res.json({
-            success: false,
-            message: error.message ?? "Server error"
-        })
+    if (!/^\d{10}$/.test(phone_no)) {
+      return res.status(400).json({ success: false, message: "Invalid phone number (must be 10 digits)" });
     }
+
+    const exist = await prisma.user.findUnique({ where: { email } });
+    if (exist) return res.status(400).json({ success: false, message: "Email already registered" });
+
+    const existPhoneNo = await prisma.user.findUnique({ where: { phone_no } });
+    if (existPhoneNo) return res.status(400).json({ success: false, message: "Phone no. is already registered" });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // decide role: seller applicant or buyer by default
+    const role = applySeller ? "SELLER" : "BUYER";
+
+    // create user
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        phone_no,
+        avatar: avatar ?? "",
+        password: hashedPassword,
+        role,
+        is_seller_verified: applySeller ? false : false,
+        // if you added seller_bio field to User schema:
+        ...(seller_bio ? { seller_bio } : {})
+      }
+    });
+
+    // if address provided -> create address and link with userAddress
+    if (address && (address.city || address.street || address.unit_no)) {
+      const addr = await prisma.address.create({
+        data: {
+          unit_no: address.unit_no ?? null,
+          address_line1: address.street ?? null,
+          city: address.city ?? null,
+          region: address.region ?? null,
+          postal_code: address.postal_code ?? null,
+          // set a default country id or require client to provide it; adjust as needed
+          countryId: 1
+        }
+      });
+
+      await prisma.userAddress.create({
+        data: {
+          user: { connect: { id: user.id } },
+          address: { connect: { id: addr.id } }
+        }
+      });
+    }
+
+    const token = generateToken({ id: user.id });
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true, // set true in prod
+      sameSite: "none"
+    });
+
+    return res.json({ success: true, message: "Signup successful", userId: user.id });
+  } catch (error) {
+    console.error("signUp error", error);
+    return res.status(500).json({ success: false, message: error.message || "Server error" });
+  }
 }
+
 
 export async function logout(req, res) {
     try {

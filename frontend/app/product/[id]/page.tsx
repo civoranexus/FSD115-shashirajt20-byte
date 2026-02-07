@@ -194,6 +194,11 @@ export default function ProductDetailPage() {
         body: JSON.stringify(payload),
       });
 
+      if (res.status === 401) {
+      router.push("/signin");
+      return;
+    }
+
       const text = await res.text();
       let data = null;
       try { data = JSON.parse(text); } catch { data = null; }

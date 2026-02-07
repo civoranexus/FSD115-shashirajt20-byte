@@ -11,7 +11,7 @@ import { allowRoles } from "../utils/role.js";
 
 const Routers = express.Router();
 
-Routers.get("/cart", verifyToken, allowRoles("BUYER"), getCartHandler);
+Routers.get("/cart", verifyToken,  getCartHandler);
 Routers.post("/cart/add", verifyToken, allowRoles("BUYER"), addToCartHandler);
 
 Routers.post("/cart/item/:id", verifyToken, allowRoles("BUYER"), updateCartItemHandler);

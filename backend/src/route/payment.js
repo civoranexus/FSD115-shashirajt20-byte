@@ -2,10 +2,10 @@ import express from "express";
 import { verifyToken } from "../utils/token.js";
 import { createPaymentOrder, paymentSuccessHandler, verifyPayment } from "../actions/payment.js";
 
-const router = express.Router();
+const routerr = express.Router();
 
-router.post("/create-order", verifyToken, createPaymentOrder);
-router.post("/verify", verifyToken, verifyPayment);
-router.post("/success/:orderId", verifyToken, paymentSuccessHandler);
+routerr.post("/create-order", verifyToken, createPaymentOrder);
+routerr.post("/verify", verifyToken, verifyPayment);
+routerr.post("/success/:orderId", verifyToken, paymentSuccessHandler);
 
-export default router;
+export default routerr;

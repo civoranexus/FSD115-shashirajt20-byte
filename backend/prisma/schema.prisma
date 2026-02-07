@@ -42,14 +42,36 @@ model User {
   role     Role   @default(BUYER)
 
   userAddresses      UserAddress[]
-  orders             Order[]         @relation("UserOrders")
-  productItems       ProductItem[]   @relation("UserProductItems")
+  orders             Order[]             @relation("UserOrders")
+  productItems       ProductItem[]       @relation("UserProductItems")
   paymentMethods     PaymentMethod[]
   reviews            UserReview[]
   cattle             Cattle[]
   carts              Cart[]
   orderProducts      OrderProduct[]
-  is_seller_verified Boolean         @default(false)
+  is_seller_verified Boolean             @default(false)
+  sellerApplication  SellerApplication[]
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SellerApplication {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @unique
+  store_name  String
+  gst_number  String? // optional business field
+  documents   String? // JSON string / comma-separated URLs (simple)
+  reason      String? // user provided reason
+  status      ApplicationStatus @default(PENDING)
+  reject_note String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
 }
 
 model UserAddress {

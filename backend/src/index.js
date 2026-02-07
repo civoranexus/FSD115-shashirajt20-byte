@@ -7,6 +7,9 @@ import Router from "./route/product.js";
 import CartRouter from "./route/cart.js"
 import OrderRouter from "./route/order.js";
 import PaymentRouter from "./route/payment.js"
+import SellerOrdersRouter from "./route/sellerOrder.js"
+import SellerApplicationRouter from "./route/sellerApplication.js"
+import AddressRouter from "./route/address.js"
 
 dotenv.config();
 
@@ -27,6 +30,12 @@ app.use("/cartapi", CartRouter);
 app.use("/orderapi", OrderRouter);
 
 app.use("/paymentapi", PaymentRouter);
+
+app.use("/sellerOrders", SellerOrdersRouter);
+
+app.use("/sellerapplication", SellerApplicationRouter);
+
+app.use("/ad", AddressRouter);
 
 // app.use("/imageapi", uploadRouter);
 

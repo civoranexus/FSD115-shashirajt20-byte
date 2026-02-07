@@ -1,6 +1,6 @@
 import express from "express";
 import { verifyToken } from "../utils/token.js";
-import { adminListOrdersHandler, adminUpdateOrderStatusHandler, checkoutHandler, getMyOrdersHandler, getOrderByIdHandler,  sellerOrdersHandler, verifyPaymentHandler } from "../actions/order.js";
+import { adminListOrdersHandler, adminUpdateOrderStatusHandler, checkoutHandler, getMyOrdersHandler, getOrderByIdHandler,  sellerApproveOrderHandler,  sellerOrdersHandler, verifyPaymentHandler } from "../actions/order.js";
 import { allowRoles } from "../utils/role.js";
 
 const routers = express.Router();
@@ -14,6 +14,8 @@ routers.post("/admin/:id/status", verifyToken, allowRoles("ADMIN"), adminUpdateO
 
 routers.get("/seller/my-orders", verifyToken, allowRoles("SELLER"), sellerOrdersHandler);
 
-router.post("/verify-payment", verifyToken, verifyPaymentHandler);
+routers.post("/verify-payment", verifyToken, verifyPaymentHandler);
+
+routers.post("/seller/approve/:id", verifyToken, sellerApproveOrderHandler);
 
 export default routers;

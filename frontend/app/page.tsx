@@ -74,6 +74,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Footer from "./component/footer";
 
 export default function HomePage() {
   const router = useRouter();
@@ -101,14 +102,14 @@ export default function HomePage() {
             >
               Explore
             </button>
-            <button
+            {/* <button
               onClick={() => router.push("/signin")}
               className="px-3 py-2 text-sm rounded-md font-medium border"
-              style={{ borderColor: "#012136", color: "#012136" }} /* teal navy */
+              style={{ borderColor: "#012136", color: "#012136" }} 
               aria-label="Sign in"
             >
               Sign in
-            </button>
+            </button> */}
           </nav>
         </div>
       </header>
@@ -188,12 +189,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="mt-12 bg-white border-t">
-        <div className="max-w-6xl mx-auto p-6 text-sm text-slate-600">
-          © {new Date().getFullYear()} Civora Livestock Exchange — made for internship
-        </div>
-      </footer>
+     
+      <Footer/>
     </main>
   );
 }
