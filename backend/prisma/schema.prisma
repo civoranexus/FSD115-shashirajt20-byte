@@ -1,0 +1,313 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SELLER
+  BUYER
+  ADMIN
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  EXPIRED
+}
+
+enum TxStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  phone_no String @unique
+  avatar   String
+  password String
+  role     Role   @default(BUYER)
+
+  userAddresses      UserAddress[]
+  orders             Order[]             @relation("UserOrders")
+  productItems       ProductItem[]       @relation("UserProductItems")
+  paymentMethods     PaymentMethod[]
+  reviews            UserReview[]
+  cattle             Cattle[]
+  carts              Cart[]
+  orderProducts      OrderProduct[]
+  is_seller_verified Boolean             @default(false)
+  sellerApplication  SellerApplication[]
+}
+
+enum ApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model SellerApplication {
+  id          Int               @id @default(autoincrement())
+  userId      Int               @unique
+  store_name  String
+  gst_number  String? // optional business field
+  documents   String? // JSON string / comma-separated URLs (simple)
+  reason      String? // user provided reason
+  status      ApplicationStatus @default(PENDING)
+  reject_note String?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model UserAddress {
+  id        Int @id @default(autoincrement())
+  userId    Int
+  addressId Int
+
+  user    User    @relation(fields: [userId], references: [id])
+  address Address @relation(fields: [addressId], references: [id])
+}
+
+model Address {
+  id            Int     @id @default(autoincrement())
+  unit_no       Int?
+  street_no     Int?
+  address_line1 String?
+  address_line2 String?
+  city          String
+  region        String
+  postal_code   Int
+  countryId     Int
+
+  country          Country       @relation(fields: [countryId], references: [id])
+  userAddress      UserAddress[]
+  ordersAsShipping Order[]       @relation("OrderShippingAddress")
+}
+
+model Country {
+  id        Int       @id @default(autoincrement())
+  country   String
+  addresses Address[]
+}
+
+// It is a frame of product created by the admin only
+model Product {
+  id              Int      @id @default(autoincrement())
+  categoryId      Int?
+  title           String
+  description     String
+  price           Decimal? @db.Decimal(10, 2)
+  image           String?  @db.Text
+  breedId         Int?
+  milk_capacityId Int?
+
+  category     Category?     @relation(fields: [categoryId], references: [id])
+  breed        Breed?        @relation(fields: [breedId], references: [id])
+  milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+
+  productItems ProductItem[]
+  cattle       Cattle[]
+}
+
+model Milkcapacity {
+  id       Int       @id @default(autoincrement())
+  capacity Int
+  products Product[]
+  cattle   Cattle[]
+}
+
+model Category {
+  id            Int       @id @default(autoincrement())
+  category_name String
+  products      Product[]
+}
+
+model Breed {
+  id         Int       @id @default(autoincrement())
+  breed_name String
+  products   Product[]
+  cattle     Cattle[]
+}
+
+enum ListingApprovalStatus {
+  PENDING
+  ACTIVE
+  REJECTED
+}
+
+// This is the product created by the seller on the frame created byt the admin
+model ProductItem {
+  id               Int                   @id @default(autoincrement())
+  productId        Int
+  userId           Int
+  quantity_instock Int
+  image            String?               @db.Text
+  price            Decimal               @db.Decimal(10, 2)
+  isActive         Boolean               @default(true)
+  status           ListingApprovalStatus @default(PENDING)
+  reject_reason    String?
+
+  product Product @relation(fields: [productId], references: [id])
+  user    User    @relation("UserProductItems", fields: [userId], references: [id])
+
+  cartItems     CartItem[]
+  orderProducts OrderProduct[]
+
+  @@unique([productId, userId])
+  @@index([userId])
+  @@index([productId])
+  @@index([status])
+}
+
+// This is actual product created by the seller on the frame created by the admin
+model Cattle {
+  id              Int           @id @default(autoincrement())
+  productId       Int?
+  sellerId        Int?
+  tag_id          String?       @unique
+  title           String
+  description     String?
+  breedId         Int?
+  milk_capacityId Int?
+  age_months      Int?
+  weight_kg       Float?
+  gender          String?
+  health_status   String?
+  image           String        @db.Text
+  is_pregnant     Boolean       @default(false)
+  price           Decimal       @db.Decimal(10, 2)
+  status          ListingStatus @default(ACTIVE)
+  createdAt       DateTime      @default(now())
+
+  product      Product?      @relation(fields: [productId], references: [id])
+  seller       User?         @relation(fields: [sellerId], references: [id])
+  breed        Breed?        @relation(fields: [breedId], references: [id])
+  milkcapacity Milkcapacity? @relation(fields: [milk_capacityId], references: [id])
+}
+
+model Cart {
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  user      User       @relation(fields: [userId], references: [id])
+  cartItems CartItem[]
+}
+
+model CartItem {
+  id             Int @id @default(autoincrement())
+  cartId         Int
+  product_itemId Int
+  quantity       Int
+
+  cart        Cart        @relation(fields: [cartId], references: [id])
+  productItem ProductItem @relation(fields: [product_itemId], references: [id])
+}
+
+model Order {
+  id                 Int      @id @default(autoincrement())
+  userId             Int
+  order_date         DateTime @default(now())
+  payment_methodId   Int?
+  shipping_addressId Int?
+  shipping_methodId  Int?
+  order_total        Int
+  order_statusId     Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  user             User            @relation("UserOrders", fields: [userId], references: [id])
+  payment_method   PaymentMethod?  @relation("OrderPaymentMethod", fields: [payment_methodId], references: [id])
+  shipping_method  ShippingMethod? @relation(fields: [shipping_methodId], references: [id])
+  shipping_address Address?        @relation("OrderShippingAddress", fields: [shipping_addressId], references: [id])
+  order_status     OrderStatus?    @relation(fields: [order_statusId], references: [id])
+
+  orderProducts OrderProduct[]
+  payments      Payment[]
+}
+
+model OrderStatus {
+  id     Int     @id @default(autoincrement())
+  status String
+  orders Order[]
+}
+
+model OrderProduct {
+  id             Int   @id @default(autoincrement())
+  product_itemId Int
+  userId         Int
+  quantity       Int
+  price          Float
+  orderId        Int?
+
+  productItem ProductItem @relation(fields: [product_itemId], references: [id])
+  user        User        @relation(fields: [userId], references: [id])
+  order       Order?      @relation(fields: [orderId], references: [id])
+
+  reviews UserReview[] // 🔥 Added opposite
+}
+
+model ShippingMethod {
+  id     Int     @id @default(autoincrement())
+  name   String
+  price  Float
+  orders Order[]
+}
+
+model PaymentType {
+  id             Int             @id @default(autoincrement())
+  value          String
+  paymentMethods PaymentMethod[]
+}
+
+model PaymentMethod {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  payment_typeId Int
+  provider       String?
+  account_no     Int?
+  expiry_date    DateTime?
+
+  user        User        @relation(fields: [userId], references: [id])
+  paymentType PaymentType @relation(fields: [payment_typeId], references: [id])
+
+  orders   Order[]   @relation("OrderPaymentMethod") // 🔥 opposite added
+  payments Payment[]
+}
+
+model UserReview {
+  id              Int     @id @default(autoincrement())
+  userId          Int
+  order_productId Int
+  rating          Int
+  comment         String?
+
+  user         User         @relation(fields: [userId], references: [id])
+  orderProduct OrderProduct @relation(fields: [order_productId], references: [id])
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  orderId         Int
+  amount          Float
+  status          TxStatus @default(PENDING)
+  paymentMethodId Int?
+
+  order         Order          @relation(fields: [orderId], references: [id])
+  paymentMethod PaymentMethod? @relation(fields: [paymentMethodId], references: [id])
+}

@@ -131,3 +131,12 @@
 </p>
 
 
+## Internship Task Flow Implementation
+
+This project is developed by shashi raj sharma the official internship task flow:
+
+- Phase 1: Architecture & Database Design
+- Phase 2: Authentication & Role Management
+- Phase 3: Product Listing & Search
+- Phase 4: Transactions & Payments
+- Phase 5: Testing & Deployment
